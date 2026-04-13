@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -29,15 +29,136 @@ const MOCK_DETECTIONS = [
 ];
 
 const MOCK_INDICATORS = [
+  // 收入类指标
   { id: 1, name: '营收增长率', code: 'REV_GROWTH', category: '收入类', value: '+187.3%', industry: '+12.4%', deviation: '+174.9%', risk: 'red' as RiskLevel },
-  { id: 2, name: '应收账款周转率', code: 'AR_TURNOVER', category: '资产类', value: '1.23', industry: '8.67', deviation: '-85.8%', risk: 'red' as RiskLevel },
-  { id: 3, name: '固定资产增长率', code: 'FA_GROWTH', category: '资产类', value: '+68.2%', industry: '+15.3%', deviation: '+52.9%', risk: 'orange' as RiskLevel },
-  { id: 4, name: '毛利率', code: 'GROSS_MARGIN', category: '盈利类', value: '42.1%', industry: '28.6%', deviation: '+13.5%', risk: 'yellow' as RiskLevel },
-  { id: 5, name: '资产负债率', code: 'DEBT_RATIO', category: '负债类', value: '38.4%', industry: '41.2%', deviation: '-2.8%', risk: 'none' as RiskLevel },
-  { id: 6, name: '现金流量比率', code: 'CASH_RATIO', category: '现金类', value: '0.31', industry: '1.12', deviation: '-72.3%', risk: 'red' as RiskLevel },
-  { id: 7, name: '存货周转率', code: 'INV_TURNOVER', category: '资产类', value: '3.45', industry: '6.78', deviation: '-49.1%', risk: 'orange' as RiskLevel },
-  { id: 8, name: '净资产收益率', code: 'ROA', category: '盈利类', value: '8.2%', industry: '7.9%', deviation: '+0.3%', risk: 'none' as RiskLevel },
+  { id: 2, name: '主营业务收入增长率', code: 'MAIN_BIZ_REV_GROWTH', category: '收入类', value: '+175.6%', industry: '+10.8%', deviation: '+164.8%', risk: 'red' as RiskLevel },
+  { id: 3, name: '其他业务收入占比', code: 'OTHER_BIZ_REV_RATIO', category: '收入类', value: '25.8%', industry: '8.3%', deviation: '+198.8%', risk: 'red' as RiskLevel },
+  { id: 4, name: '营业收入现金比率', code: 'REV_CASH_RATIO', category: '收入类', value: '0.75', industry: '0.95', deviation: '-21.1%', risk: 'yellow' as RiskLevel },
+  { id: 5, name: '销售商品收到的现金/营业收入', code: 'CASH_RECEIVED_REV_RATIO', category: '收入类', value: '0.78', industry: '0.92', deviation: '-15.2%', risk: 'yellow' as RiskLevel },
+  
+  // 资产类指标
+  { id: 6, name: '应收账款周转率', code: 'AR_TURNOVER', category: '资产类', value: '1.23', industry: '8.67', deviation: '-85.8%', risk: 'red' as RiskLevel },
+  { id: 7, name: '固定资产增长率', code: 'FA_GROWTH', category: '资产类', value: '+68.2%', industry: '+15.3%', deviation: '+52.9%', risk: 'orange' as RiskLevel },
+  { id: 8, name: '总资产周转率', code: 'TOTAL_ASSET_TURNOVER', category: '资产类', value: '0.89', industry: '1.25', deviation: '-28.8%', risk: 'orange' as RiskLevel },
+  { id: 9, name: '存货周转率', code: 'INV_TURNOVER', category: '资产类', value: '3.45', industry: '6.78', deviation: '-49.1%', risk: 'orange' as RiskLevel },
+  { id: 10, name: '应收账款增长率', code: 'AR_GROWTH', category: '资产类', value: '+230.5%', industry: '+18.2%', deviation: '+212.3%', risk: 'red' as RiskLevel },
+  { id: 11, name: '存货增长率', code: 'INV_GROWTH', category: '资产类', value: '+156.8%', industry: '+12.5%', deviation: '+144.3%', risk: 'red' as RiskLevel },
+  { id: 12, name: '营业周期', code: 'OPERATING_CYCLE', category: '资产类', value: '189.5', industry: '98.7', deviation: '+92.0%', risk: 'red' as RiskLevel },
+  { id: 13, name: '其他应收款占总资产比', code: 'OTHER_REC_ASSET_RATIO', category: '资产类', value: '12.5%', industry: '5.2%', deviation: '+140.4%', risk: 'red' as RiskLevel },
+  { id: 14, name: '固定资产占总资产比', code: 'FA_ASSET_RATIO', category: '资产类', value: '45.8%', industry: '32.5%', deviation: '+40.9%', risk: 'yellow' as RiskLevel },
+  { id: 15, name: '在建工程占总资产比', code: 'CONSTRUCT_ASSET_RATIO', category: '资产类', value: '28.6%', industry: '15.3%', deviation: '+86.9%', risk: 'orange' as RiskLevel },
+  
+  // 负债类指标
+  { id: 16, name: '资产负债率', code: 'DEBT_RATIO', category: '负债类', value: '38.4%', industry: '41.2%', deviation: '-2.8%', risk: 'none' as RiskLevel },
+  { id: 17, name: '流动比率', code: 'CURRENT_RATIO', category: '负债类', value: '1.23', industry: '1.56', deviation: '-21.2%', risk: 'yellow' as RiskLevel },
+  { id: 18, name: '速动比率', code: 'QUICK_RATIO', category: '负债类', value: '0.78', industry: '1.02', deviation: '-23.5%', risk: 'yellow' as RiskLevel },
+  { id: 19, name: '利息保障倍数', code: 'INTEREST_COVERAGE', category: '负债类', value: '3.25', industry: '4.87', deviation: '-33.3%', risk: 'orange' as RiskLevel },
+  { id: 20, name: '应付账款周转率', code: 'AP_TURNOVER', category: '负债类', value: '4.32', industry: '6.78', deviation: '-36.3%', risk: 'orange' as RiskLevel },
+  { id: 21, name: '预收账款占营业收入比', code: 'ADVANCE_REV_RATIO', category: '负债类', value: '35.6%', industry: '12.8%', deviation: '+178.1%', risk: 'red' as RiskLevel },
+  { id: 22, name: '短期借款增长率', code: 'SHORT_LOAN_GROWTH', category: '负债类', value: '+156.3%', industry: '+25.6%', deviation: '+510.5%', risk: 'red' as RiskLevel },
+  
+  // 盈利类指标
+  { id: 23, name: '毛利率', code: 'GROSS_MARGIN', category: '盈利类', value: '42.1%', industry: '28.6%', deviation: '+13.5%', risk: 'yellow' as RiskLevel },
+  { id: 24, name: '净资产收益率', code: 'ROA', category: '盈利类', value: '8.2%', industry: '7.9%', deviation: '+0.3%', risk: 'none' as RiskLevel },
+  { id: 25, name: '净利润增长率', code: 'NET_PROFIT_GROWTH', category: '盈利类', value: '+210.5%', industry: '+15.8%', deviation: '+194.7%', risk: 'red' as RiskLevel },
+  { id: 26, name: '总资产收益率', code: 'ROE', category: '盈利类', value: '12.5%', industry: '10.8%', deviation: '+15.7%', risk: 'yellow' as RiskLevel },
+  { id: 27, name: '营业利润率', code: 'OPERATING_MARGIN', category: '盈利类', value: '18.7%', industry: '12.3%', deviation: '+52.0%', risk: 'yellow' as RiskLevel },
+  { id: 28, name: '成本费用利润率', code: 'COST_MARGIN', category: '盈利类', value: '22.3%', industry: '16.8%', deviation: '+32.7%', risk: 'yellow' as RiskLevel },
+  { id: 29, name: '销售费用率', code: 'SALES_EXPENSE_RATIO', category: '盈利类', value: '8.7%', industry: '5.6%', deviation: '+55.4%', risk: 'yellow' as RiskLevel },
+  { id: 30, name: '管理费用率', code: 'ADMIN_EXPENSE_RATIO', category: '盈利类', value: '12.3%', industry: '8.9%', deviation: '+38.2%', risk: 'yellow' as RiskLevel },
+  { id: 31, name: '财务费用率', code: 'FINANCE_EXPENSE_RATIO', category: '盈利类', value: '3.2%', industry: '2.1%', deviation: '+52.4%', risk: 'yellow' as RiskLevel },
+  { id: 32, name: '研发费用率', code: 'R&D_EXPENSE_RATIO', category: '盈利类', value: '5.8%', industry: '4.2%', deviation: '+38.1%', risk: 'yellow' as RiskLevel },
+  { id: 33, name: '资产减值损失率', code: 'ASSET_IMPAIRMENT_RATIO', category: '盈利类', value: '2.1%', industry: '1.2%', deviation: '+75.0%', risk: 'yellow' as RiskLevel },
+  { id: 34, name: '营业外收支净额率', code: 'NON_OPERATING_RATIO', category: '盈利类', value: '15.6%', industry: '2.3%', deviation: '+578.3%', risk: 'red' as RiskLevel },
+  { id: 35, name: '所得税费用率', code: 'INCOME_TAX_RATIO', category: '盈利类', value: '12.5%', industry: '15.8%', deviation: '-20.9%', risk: 'yellow' as RiskLevel },
+  { id: 36, name: '每股收益', code: 'EPS', category: '盈利类', value: '1.25', industry: '0.87', deviation: '+43.7%', risk: 'yellow' as RiskLevel },
+  { id: 37, name: '扣除非经常性损益后净利润增长率', code: 'NON_RECURR_PROFIT_GROWTH', category: '盈利类', value: '-15.3%', industry: '+10.2%', deviation: '-250.0%', risk: 'red' as RiskLevel },
+  
+  // 现金类指标
+  { id: 38, name: '现金流量比率', code: 'CASH_RATIO', category: '现金类', value: '0.31', industry: '1.12', deviation: '-72.3%', risk: 'red' as RiskLevel },
+  { id: 39, name: '现金转换周期', code: 'CASH_CONVERSION_CYCLE', category: '现金类', value: '125.3', industry: '65.8', deviation: '+90.4%', risk: 'red' as RiskLevel },
+  { id: 40, name: '经营活动现金流量净额增长率', code: 'OPER_CASH_FLOW_GROWTH', category: '现金类', value: '-35.6%', industry: '+8.5%', deviation: '-518.8%', risk: 'red' as RiskLevel },
+  { id: 41, name: '经营活动现金流量净额/净利润', code: 'OPER_CASH_FLOW_PROFIT_RATIO', category: '现金类', value: '0.45', industry: '1.25', deviation: '-64.0%', risk: 'red' as RiskLevel },
+  { id: 42, name: '自由现金流', code: 'FREE_CASH_FLOW', category: '现金类', value: '-12500000', industry: '5000000', deviation: '-350.0%', risk: 'red' as RiskLevel },
+  
+  // 估值类指标
+  { id: 43, name: '市盈率', code: 'PE_RATIO', category: '估值类', value: '45.6', industry: '25.3', deviation: '+80.2%', risk: 'orange' as RiskLevel },
+  { id: 44, name: '市净率', code: 'PB_RATIO', category: '估值类', value: '5.2', industry: '3.1', deviation: '+67.7%', risk: 'orange' as RiskLevel },
+  { id: 45, name: '市销率', code: 'PS_RATIO', category: '估值类', value: '8.7', industry: '4.2', deviation: '+107.1%', risk: 'red' as RiskLevel },
+  { id: 46, name: '每股净资产', code: 'BOOK_VALUE_PER_SHARE', category: '估值类', value: '8.75', industry: '7.23', deviation: '+21.0%', risk: 'yellow' as RiskLevel },
+  
+  // 治理类指标
+  { id: 47, name: '第一大股东持股比例', code: 'LARGEST_SHAREHOLDER_RATIO', category: '治理类', value: '65.8%', industry: '35.2%', deviation: '+87.0%', risk: 'orange' as RiskLevel },
+  { id: 48, name: '董事会规模', code: 'BOARD_SIZE', category: '治理类', value: '15', industry: '9', deviation: '+66.7%', risk: 'yellow' as RiskLevel },
+  { id: 49, name: '独立董事比例', code: 'INDEPENDENT_DIRECTOR_RATIO', category: '治理类', value: '20.0%', industry: '33.3%', deviation: '-40.0%', risk: 'orange' as RiskLevel },
+  { id: 50, name: '高管薪酬与净利润比率', code: 'EXEC_COMPENSATION_PROFIT_RATIO', category: '治理类', value: '85.0%', industry: '25.0%', deviation: '+240.0%', risk: 'red' as RiskLevel },
+  
+  // 信息披露类指标
+  { id: 51, name: '审计意见类型', code: 'AUDIT_OPINION_TYPE', category: '信息披露类', value: '带强调事项段的无保留意见', industry: '标准无保留意见', deviation: '异常', risk: 'yellow' as RiskLevel },
+  { id: 52, name: '年报披露及时性', code: 'ANNUAL_REPORT_TIMELINESS', category: '信息披露类', value: '4月29日', industry: '4月15日前', deviation: '延迟', risk: 'yellow' as RiskLevel },
+  { id: 53, name: '会计政策变更频率', code: 'ACCOUNTING_POLICY_CHANGE_FREQUENCY', category: '信息披露类', value: '3次/年', industry: '0-1次/年', deviation: '频繁', risk: 'orange' as RiskLevel },
+  { id: 54, name: '重大事项披露完整性', code: 'MATERIAL_EVENT_DISCLOSURE_COMPLETENESS', category: '信息披露类', value: '不完整', industry: '完整', deviation: '异常', risk: 'red' as RiskLevel },
+  
+  // 关联交易类指标
+  { id: 55, name: '关联交易金额占营业收入比', code: 'RELATED_PARTY_TRANSACTION_REV_RATIO', category: '关联交易类', value: '45.6%', industry: '15.2%', deviation: '+199.3%', risk: 'red' as RiskLevel },
+  { id: 56, name: '关联应收账款占总应收账款比', code: 'RELATED_AR_TOTAL_AR_RATIO', category: '关联交易类', value: '65.8%', industry: '20.5%', deviation: '+221.0%', risk: 'red' as RiskLevel },
+  { id: 57, name: '关联采购占总采购比', code: 'RELATED_PURCHASE_TOTAL_PURCHASE_RATIO', category: '关联交易类', value: '58.3%', industry: '25.6%', deviation: '+127.7%', risk: 'red' as RiskLevel },
+  { id: 58, name: '关联销售占总销售比', code: 'RELATED_SALES_TOTAL_SALES_RATIO', category: '关联交易类', value: '42.7%', industry: '18.9%', deviation: '+126.0%', risk: 'red' as RiskLevel },
+  
+  // 扩展指标（补充到108条）
+  { id: 59, name: '销售净利率', code: 'NET_PROFIT_MARGIN', category: '盈利类', value: '15.6%', industry: '10.2%', deviation: '+52.9%', risk: 'yellow' as RiskLevel },
+  { id: 60, name: '总资产增长率', code: 'TOTAL_ASSET_GROWTH', category: '资产类', value: '+85.3%', industry: '18.6%', deviation: '+358.6%', risk: 'red' as RiskLevel },
+  { id: 61, name: '股东权益增长率', code: 'SHAREHOLDER_EQUITY_GROWTH', category: '资产类', value: '+25.6%', industry: '12.8%', deviation: '+99.2%', risk: 'orange' as RiskLevel },
+  { id: 62, name: '营业外收入占净利润比', code: 'NON_OPERATING_INCOME_PROFIT_RATIO', category: '盈利类', value: '45.8%', industry: '15.3%', deviation: '+199.3%', risk: 'red' as RiskLevel },
+  { id: 63, name: '存货占流动资产比', code: 'INV_CURRENT_ASSET_RATIO', category: '资产类', value: '42.3%', industry: '25.6%', deviation: '+65.2%', risk: 'orange' as RiskLevel },
+  { id: 64, name: '应收账款占流动资产比', code: 'AR_CURRENT_ASSET_RATIO', category: '资产类', value: '48.7%', industry: '28.9%', deviation: '+68.5%', risk: 'orange' as RiskLevel },
+  { id: 65, name: '短期负债占总负债比', code: 'SHORT_DEBT_TOTAL_DEBT_RATIO', category: '负债类', value: '75.6%', industry: '55.8%', deviation: '+35.5%', risk: 'yellow' as RiskLevel },
+  { id: 66, name: '长期负债占总负债比', code: 'LONG_DEBT_TOTAL_DEBT_RATIO', category: '负债类', value: '24.4%', industry: '44.2%', deviation: '-44.8%', risk: 'yellow' as RiskLevel },
+  { id: 67, name: '利息费用占财务费用比', code: 'INTEREST_EXPENSE_FINANCE_EXPENSE_RATIO', category: '盈利类', value: '65.8%', industry: '85.2%', deviation: '-22.8%', risk: 'yellow' as RiskLevel },
+  { id: 68, name: '汇兑损益占财务费用比', code: 'EXCHANGE_GAIN_FINANCE_EXPENSE_RATIO', category: '盈利类', value: '34.2%', industry: '14.8%', deviation: '+131.1%', risk: 'orange' as RiskLevel },
+  { id: 69, name: '研发费用资本化率', code: 'R&D_CAPITALIZATION_RATE', category: '盈利类', value: '75.0%', industry: '35.0%', deviation: '+114.3%', risk: 'red' as RiskLevel },
+  { id: 70, name: '广告费用占销售费用比', code: 'AD_EXPENSE_SALES_EXPENSE_RATIO', category: '盈利类', value: '65.8%', industry: '45.2%', deviation: '+45.6%', risk: 'yellow' as RiskLevel },
+  { id: 71, name: '职工薪酬占管理费用比', code: 'STAFF_SALARY_ADMIN_EXPENSE_RATIO', category: '盈利类', value: '55.6%', industry: '65.8%', deviation: '-15.5%', risk: 'yellow' as RiskLevel },
+  { id: 72, name: '折旧费占营业成本比', code: 'DEPRECIATION_COST_RATIO', category: '盈利类', value: '8.5%', industry: '12.3%', deviation: '-30.9%', risk: 'yellow' as RiskLevel },
+  { id: 73, name: '摊销费占营业成本比', code: 'AMORTIZATION_COST_RATIO', category: '盈利类', value: '3.2%', industry: '4.8%', deviation: '-33.3%', risk: 'yellow' as RiskLevel },
+  { id: 74, name: '税金及附加占营业收入比', code: 'TAX_AND_SURCHARGE_REV_RATIO', category: '盈利类', value: '2.5%', industry: '3.8%', deviation: '-34.2%', risk: 'yellow' as RiskLevel },
+  { id: 75, name: '其他收益占净利润比', code: 'OTHER_INCOME_PROFIT_RATIO', category: '盈利类', value: '25.6%', industry: '10.2%', deviation: '+150.9%', risk: 'orange' as RiskLevel },
+  { id: 76, name: '资产处置收益占净利润比', code: 'ASSET_DISPOSAL_INCOME_PROFIT_RATIO', category: '盈利类', value: '18.7%', industry: '5.3%', deviation: '+252.8%', risk: 'red' as RiskLevel },
+  { id: 77, name: '投资收益占净利润比', code: 'INVESTMENT_INCOME_PROFIT_RATIO', category: '盈利类', value: '35.8%', industry: '15.6%', deviation: '+129.5%', risk: 'orange' as RiskLevel },
+  { id: 78, name: '公允价值变动损益占净利润比', code: 'FAIR_VALUE_CHANGE_PROFIT_RATIO', category: '盈利类', value: '22.3%', industry: '8.9%', deviation: '+150.6%', risk: 'orange' as RiskLevel },
+  { id: 79, name: '信用减值损失占净利润比', code: 'CREDIT_IMPAIRMENT_LOSS_PROFIT_RATIO', category: '盈利类', value: '15.6%', industry: '8.2%', deviation: '+90.2%', risk: 'orange' as RiskLevel },
+  { id: 80, name: '资产减值损失占净利润比', code: 'ASSET_IMPAIRMENT_LOSS_PROFIT_RATIO', category: '盈利类', value: '12.3%', industry: '6.8%', deviation: '+80.9%', risk: 'orange' as RiskLevel },
+  { id: 81, name: '营业利润占利润总额比', code: 'OPERATING_PROFIT_TOTAL_PROFIT_RATIO', category: '盈利类', value: '65.8%', industry: '85.2%', deviation: '-22.8%', risk: 'yellow' as RiskLevel },
+  { id: 82, name: '净利润占利润总额比', code: 'NET_PROFIT_TOTAL_PROFIT_RATIO', category: '盈利类', value: '75.6%', industry: '80.2%', deviation: '-5.7%', risk: 'none' as RiskLevel },
+  { id: 83, name: '归属于母公司股东的净利润占净利润比', code: 'PARENT_NET_PROFIT_TOTAL_NET_PROFIT_RATIO', category: '盈利类', value: '85.3%', industry: '90.5%', deviation: '-5.7%', risk: 'none' as RiskLevel },
+  { id: 84, name: '基本每股收益', code: 'BASIC_EPS', category: '盈利类', value: '1.25', industry: '0.87', deviation: '+43.7%', risk: 'yellow' as RiskLevel },
+  { id: 85, name: '稀释每股收益', code: 'DILUTED_EPS', category: '盈利类', value: '1.20', industry: '0.85', deviation: '+41.2%', risk: 'yellow' as RiskLevel },
+  { id: 86, name: '每股经营活动现金流量', code: 'OPER_CASH_FLOW_PER_SHARE', category: '现金类', value: '0.56', industry: '1.25', deviation: '-55.2%', risk: 'red' as RiskLevel },
+  { id: 87, name: '每股净资产', code: 'BOOK_VALUE_PER_SHARE', category: '资产类', value: '8.75', industry: '7.23', deviation: '+21.0%', risk: 'yellow' as RiskLevel },
+  { id: 88, name: '每股资本公积', code: 'CAPITAL_RESERVE_PER_SHARE', category: '资产类', value: '3.25', industry: '2.87', deviation: '+13.2%', risk: 'none' as RiskLevel },
+  { id: 89, name: '每股未分配利润', code: 'UNDISTRIBUTED_PROFIT_PER_SHARE', category: '资产类', value: '4.50', industry: '3.85', deviation: '+16.9%', risk: 'none' as RiskLevel },
+  { id: 90, name: '股东权益比率', code: 'SHAREHOLDER_EQUITY_RATIO', category: '负债类', value: '61.6%', industry: '58.8%', deviation: '+4.8%', risk: 'none' as RiskLevel },
+  { id: 91, name: '产权比率', code: 'EQUITY_RATIO', category: '负债类', value: '62.3%', industry: '69.4%', deviation: '-10.2%', risk: 'none' as RiskLevel },
+  { id: 92, name: '长期资本负债率', code: 'LONG_TERM_CAPITAL_DEBT_RATIO', category: '负债类', value: '15.6%', industry: '22.8%', deviation: '-31.6%', risk: 'yellow' as RiskLevel },
+  { id: 93, name: '现金比率', code: 'CASH_RATIO', category: '负债类', value: '0.25', industry: '0.45', deviation: '-44.4%', risk: 'orange' as RiskLevel },
+  { id: 94, name: '现金等价物余额', code: 'CASH_EQUIVALENTS_BALANCE', category: '现金类', value: '50000000', industry: '100000000', deviation: '-50.0%', risk: 'orange' as RiskLevel },
+  { id: 95, name: '经营活动现金流入/经营活动现金流出', code: 'OPER_CASH_INFLOW_OUTFLOW_RATIO', category: '现金类', value: '0.85', industry: '1.15', deviation: '-26.1%', risk: 'yellow' as RiskLevel },
+  { id: 96, name: '投资活动现金流入/投资活动现金流出', code: 'INV_CASH_INFLOW_OUTFLOW_RATIO', category: '现金类', value: '0.35', industry: '0.65', deviation: '-46.2%', risk: 'orange' as RiskLevel },
+  { id: 97, name: '筹资活动现金流入/筹资活动现金流出', code: 'FIN_CASH_INFLOW_OUTFLOW_RATIO', category: '现金类', value: '1.55', industry: '1.15', deviation: '+34.8%', risk: 'yellow' as RiskLevel },
+  { id: 98, name: '综合收益总额', code: 'TOTAL_COMPREHENSIVE_INCOME', category: '盈利类', value: '125000000', industry: '95000000', deviation: '+31.6%', risk: 'yellow' as RiskLevel },
+  { id: 99, name: '归属于母公司股东的综合收益总额', code: 'PARENT_TOTAL_COMPREHENSIVE_INCOME', category: '盈利类', value: '110000000', industry: '85000000', deviation: '+29.4%', risk: 'yellow' as RiskLevel },
+  { id: 100, name: '资产负债率（母公司）', code: 'DEBT_RATIO_PARENT', category: '负债类', value: '35.6%', industry: '40.2%', deviation: '-11.4%', risk: 'none' as RiskLevel },
+  { id: 101, name: '净资产收益率（母公司）', code: 'ROE_PARENT', category: '盈利类', value: '15.8%', industry: '12.5%', deviation: '+26.4%', risk: 'yellow' as RiskLevel },
+  { id: 102, name: '营业收入（母公司）', code: 'REVENUE_PARENT', category: '收入类', value: '500000000', industry: '450000000', deviation: '+11.1%', risk: 'none' as RiskLevel },
+  { id: 103, name: '净利润（母公司）', code: 'NET_PROFIT_PARENT', category: '盈利类', value: '75000000', industry: '65000000', deviation: '+15.4%', risk: 'none' as RiskLevel },
+  { id: 104, name: '总资产（母公司）', code: 'TOTAL_ASSETS_PARENT', category: '资产类', value: '1000000000', industry: '950000000', deviation: '+5.3%', risk: 'none' as RiskLevel },
+  { id: 105, name: '股东权益（母公司）', code: 'SHAREHOLDER_EQUITY_PARENT', category: '资产类', value: '650000000', industry: '600000000', deviation: '+8.3%', risk: 'none' as RiskLevel },
+  { id: 106, name: '资产负债率（合并）', code: 'DEBT_RATIO_CONSOLIDATED', category: '负债类', value: '38.4%', industry: '41.2%', deviation: '-2.8%', risk: 'none' as RiskLevel },
+  { id: 107, name: '净资产收益率（合并）', code: 'ROE_CONSOLIDATED', category: '盈利类', value: '12.5%', industry: '10.8%', deviation: '+15.7%', risk: 'yellow' as RiskLevel },
+  { id: 108, name: '营业收入（合并）', code: 'REVENUE_CONSOLIDATED', category: '收入类', value: '1200000000', industry: '950000000', deviation: '+26.3%', risk: 'yellow' as RiskLevel },
 ];
+
+
 
 const MOCK_ALERTS = [
   { id: 1, title: '虚构收入风险 — 北京某科技', risk: 'red' as RiskLevel, time: '2026-03-09 09:14', status: '待处理' },
@@ -87,13 +208,21 @@ export default function Index() {
     { name: '华东科技集团_2025年报.xlsx', status: '已就绪', records: 2847 },
     { name: '南方制造_Q4财务数据.csv', status: '处理中' },
   ]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [currentFileData, setCurrentFileData] = useState<any>(null);
   const [detecting, setDetecting] = useState(false);
+  const [realtimeData, setRealtimeData] = useState<any>(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [selectedAiModel, setSelectedAiModel] = useState<'gemini' | 'deepseek'>('gemini');
   const [profileForm, setProfileForm] = useState({ name: '', department: '', phone: '' });
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmNew: '' });
   const [pwLoading, setPwLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<{ name: string; email: string; role: string; department?: string; phone?: string } | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProfile = async () => {
@@ -140,11 +269,21 @@ export default function Index() {
   };
 
   const handleDetect = () => {
+    if (selectedFiles.length === 0) {
+      toast.error('请至少选择一个已就绪的文件');
+      return;
+    }
     setDetecting(true);
-    toast.info('检测启动中', { description: '正在运行108条指标自动计算...' });
+    const filesText = selectedFiles.length === 1 ? selectedFiles[0] : `${selectedFiles.length}个文件`;
+    toast.info('检测启动中', { description: `正在对 ${filesText} 运行108条指标自动计算...` });
     setTimeout(() => {
       setDetecting(false);
-      toast.success('检测完成', { description: '发现 3 项红色高危指标，请立即关注' });
+      setCurrentFileData({ 
+        files: selectedFiles, 
+        timestamp: new Date().toLocaleString(),
+        fileCount: selectedFiles.length 
+      });
+      toast.success('检测完成', { description: `成功计算 ${filesText}，发现 3 项红色高危指标，请立即关注` });
     }, 3000);
   };
 
@@ -164,6 +303,31 @@ export default function Index() {
     setAnnotations((prev) => [newVersion, ...prev.map((v) => ({ ...v, isLatest: false }))]);
     setAnnotationText('');
     toast.success('批注提交成功');
+  };
+
+  // 处理公司点击事件
+  const handleCompanyClick = (company: any) => {
+    // 生成模拟的详细风险数据
+    const riskDetails = {
+      ...company,
+      riskIndicators: [
+        { name: '营收增长率', value: '25.6%', industry: '15.2%', deviation: '+10.4%', risk: 'yellow' },
+        { name: '应收账款周转率', value: '3.2', industry: '4.5', deviation: '-1.3', risk: 'red' },
+        { name: '现金流量比率', value: '0.8', industry: '1.2', deviation: '-0.4', risk: 'red' },
+        { name: '毛利率', value: '18.5%', industry: '22.3%', deviation: '-3.8%', risk: 'orange' },
+        { name: '资产负债率', value: '68.2%', industry: '55.0%', deviation: '+13.2%', risk: 'orange' },
+      ],
+      financialData: {
+        revenue: '1.2亿',
+        profit: '850万',
+        assets: '3.5亿',
+        liabilities: '2.4亿',
+      },
+      riskAnalysis: `经检测，${company.company}存在以下风险：\n1. 应收账款周转率低于行业平均水平，可能存在回款风险\n2. 现金流量比率不足，短期偿债能力较弱\n3. 毛利率低于行业平均，盈利能力有待提升\n4. 资产负债率较高，财务杠杆风险较大\n\n建议：加强应收账款管理，优化现金流，提高运营效率，合理控制负债水平。`,
+    };
+    
+    setSelectedCompany(riskDetails);
+    setShowCompanyDetail(true);
   };
 
   const handleProfileSave = async () => {
@@ -226,13 +390,107 @@ export default function Index() {
     }
   };
 
+  // 获取实时数据
+  const fetchRealtimeData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      // 构建查询参数，传递选择的文件
+      const params = new URLSearchParams();
+      selectedFiles.forEach(file => {
+        params.append('files', file);
+      });
+      
+      const res = await fetch(`${API_BASE_URL}/api/ai/realtime-data?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRealtimeData(data.data);
+      }
+    } catch (error) {
+      console.error('获取实时数据失败:', error);
+    }
+  };
+
+  // 运行AI智能体分析
+  const runAiAnalysis = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('请至少选择一个文件');
+      return;
+    }
+    
+    const modelName = selectedAiModel === 'gemini' ? 'Google Gemini' : 'DeepSeek';
+    const priceInfo = selectedAiModel === 'gemini' ? '¥0.1/秒' : '按实际使用计费';
+    
+    toast.info('充值提示', { 
+      description: `使用${modelName}需要充值，收费标准：${priceInfo}`,
+      action: {
+        label: '去充值',
+        onClick: () => window.open('https://platform.deepseek.com', '_blank'),
+      },
+    });
+    
+    setAiAnalyzing(true);
+    toast.info('AI分析启动中', { description: `正在使用${modelName}智能体进行分析...` });
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setAiAnalyzing(false);
+      toast.error('请先登录');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/ai/ai-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fileData: selectedFiles,
+          indicators: MOCK_INDICATORS.slice(0, 10), // 发送前10个指标作为示例
+          model: selectedAiModel,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiAnalysis(data.data.analysis);
+        toast.success('AI分析完成', { description: `${modelName}智能体已完成分析` });
+      } else {
+        toast.error(data.message || 'AI分析失败');
+      }
+    } catch (error) {
+      console.error('AI分析失败:', error);
+      toast.error('AI分析失败，请检查网络连接');
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
   const filteredIndicators = MOCK_INDICATORS.filter((ind) => {
     const matchSearch = !indicatorSearch || ind.name.includes(indicatorSearch) || ind.code.includes(indicatorSearch);
     const matchRisk = !indicatorRiskFilter || ind.risk === indicatorRiskFilter;
     return matchSearch && matchRisk;
   });
 
+  // 分页逻辑
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil(filteredIndicators.length / itemsPerPage);
+  const startIndex = (indicatorPage - 1) * itemsPerPage;
+  const paginatedIndicators = filteredIndicators.slice(startIndex, startIndex + itemsPerPage);
+
   const filteredAlerts = MOCK_ALERTS.filter((a) => !alertFilter || a.risk === alertFilter);
+
+  // 定期获取实时数据
+  useEffect(() => {
+    // 初始加载
+    fetchRealtimeData();
+    
+    // 每30秒刷新一次
+    const interval = setInterval(fetchRealtimeData, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const navItems: { view: View; label: string }[] = [
     { view: 'dashboard', label: '控制台' },
@@ -623,6 +881,18 @@ export default function Index() {
                 <p className="text-xs text-[#150049] uppercase tracking-[0.1em] font-medium mb-1">财务风控中心</p>
                 <h1 className="text-3xl font-bold text-[#000000] tracking-tight">108条指标自动计算</h1>
                 <p className="text-[#150049] text-sm mt-1">华东科技集团 · 2025年度 · 最新检测版本 v3</p>
+                {currentFileData && (
+                  <div className="flex items-center gap-2 text-xs text-[#150049] bg-[#eef1ee] px-3 py-1.5 rounded-lg border border-[#344056]/30 mt-2">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {currentFileData.fileCount === 1 ? (
+                      <>当前计算文件: <span className="font-medium">{currentFileData.files[0]}</span></>
+                    ) : (
+                      <>当前计算文件: <span className="font-medium">{currentFileData.fileCount}个文件</span></>
+                    )} · 计算时间: {currentFileData.timestamp}
+                  </div>
+                )}
               </div>
 
               {/* Controls */}
@@ -650,9 +920,30 @@ export default function Index() {
                   <option value="yellow">黄色预警</option>
                   <option value="none">无风险</option>
                 </select>
+                <div className="relative">
+                  <select
+                    multiple
+                    value={selectedFiles}
+                    onChange={(e) => {
+                      const newSelectedFiles = Array.from(e.target.selectedOptions).map(option => option.value);
+                      setSelectedFiles(newSelectedFiles);
+                      // 当选择文件变化时，获取实时数据
+                      fetchRealtimeData();
+                    }}
+                    className="px-3 py-2 text-sm bg-white border border-[#344056] rounded-lg text-[#000000] focus:outline-none focus:border-[#1c0620]/50 min-w-[200px]"
+                    size={1}
+                  >
+                    {uploadedFiles.filter(f => f.status === '已就绪').map((file) => (
+                      <option key={file.name} value={file.name}>{file.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#150049]/60">
+                    可多选
+                  </div>
+                </div>
                 <button
                   onClick={handleDetect}
-                  disabled={detecting}
+                  disabled={detecting || selectedFiles.length === 0}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1c0620] rounded-lg hover:bg-[#1c0620]/90 transition-colors disabled:opacity-60"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -661,8 +952,19 @@ export default function Index() {
                   {detecting ? '计算中...' : '一键计算'}
                 </button>
                 <button
-                  onClick={() => toast.success('底稿下载成功', { description: 'indicators_report.xlsx 已保存' })}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-[#150049] border border-[#344056] rounded-lg hover:border-[#1c0620]/50 hover:text-[#000000] transition-all"
+                  onClick={() => {
+                    if (selectedFiles.length === 0) {
+                      toast.error('请先选择至少一个文件');
+                      return;
+                    }
+                    if (selectedFiles.length === 1) {
+                      toast.success('底稿下载成功', { description: `${selectedFiles[0]}_indicators_report.xlsx 已保存` });
+                    } else {
+                      toast.success('底稿下载成功', { description: `已保存 ${selectedFiles.length} 个文件的指标报告` });
+                    }
+                  }}
+                  disabled={selectedFiles.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-[#150049] border border-[#344056] rounded-lg hover:border-[#1c0620]/50 hover:text-[#000000] transition-all disabled:opacity-60"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -683,7 +985,7 @@ export default function Index() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#344056]/20">
-                      {filteredIndicators.map((ind) => (
+                      {paginatedIndicators.map((ind) => (
                         <tr key={ind.id} className="hover:bg-[#eef1ee] transition-colors duration-150">
                           <td className="py-3 px-4">
                             <p className="text-sm font-medium text-[#000000]">{ind.name}</p>
@@ -723,11 +1025,13 @@ export default function Index() {
                     <button
                       onClick={() => setIndicatorPage((p) => Math.max(1, p - 1))}
                       className="text-xs px-3 py-1.5 border border-[#344056] rounded-lg text-[#150049] hover:text-[#000000] hover:border-[#1c0620]/40 transition-all"
+                      disabled={indicatorPage === 1}
                     >上一页</button>
-                    <span className="text-xs text-[#150049] px-2">{indicatorPage} / 14</span>
+                    <span className="text-xs text-[#150049] px-2">{indicatorPage} / {totalPages}</span>
                     <button
-                      onClick={() => setIndicatorPage((p) => Math.min(14, p + 1))}
+                      onClick={() => setIndicatorPage((p) => Math.min(totalPages, p + 1))}
                       className="text-xs px-3 py-1.5 border border-[#344056] rounded-lg text-[#150049] hover:text-[#000000] hover:border-[#1c0620]/40 transition-all"
+                      disabled={indicatorPage === totalPages}
                     >下一页</button>
                   </div>
                 </div>
@@ -744,23 +1048,62 @@ export default function Index() {
                 <p className="text-[#150049] text-sm mt-1">四维度全面核查：单指标合规性 · 多指标关联性 · 历史趋势 · 行业对标</p>
               </div>
 
+              {/* 当前选择文件 */}
+              <div className="mb-6 p-4 border border-[#344056] rounded-xl bg-[#eef1ee]">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-[#000000]">当前计算文件</h3>
+                  <span className="text-xs text-[#150049]">{selectedFiles.length} 个文件</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFiles.length > 0 ? (
+                    selectedFiles.map((file, index) => (
+                      <span key={index} className="text-xs px-3 py-1.5 bg-white border border-[#344056] rounded-lg text-[#150049]">
+                        {file}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-[#150049]/60">未选择文件</span>
+                  )}
+                </div>
+              </div>
+
               {/* Risk Level Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {[
-                  { level: '无风险', count: 312, color: 'border-emerald-500/30 bg-emerald-500/5', textColor: 'text-emerald-600', dot: 'bg-emerald-500' },
-                  { level: '黄色预警', count: 98, color: 'border-yellow-400/30 bg-yellow-400/5', textColor: 'text-yellow-500', dot: 'bg-yellow-400' },
-                  { level: '橙色预警', count: 54, color: 'border-orange-500/30 bg-orange-500/5', textColor: 'text-orange-500', dot: 'bg-orange-500' },
-                  { level: '红色高危', count: 23, color: 'border-red-500/30 bg-red-500/5', textColor: 'text-red-500', dot: 'bg-red-500' },
-                ].map((item) => (
-                  <div key={item.level} className={`border rounded-xl p-5 ${item.color}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`w-3 h-3 rounded-full ${item.dot}`}></span>
-                      <span className={`text-sm font-medium ${item.textColor}`}>{item.level}</span>
-                    </div>
-                    <p className={`text-3xl font-bold ${item.textColor}`}>{item.count}</p>
-                    <p className="text-xs text-[#150049] mt-1">家企业</p>
-                  </div>
-                ))}
+                {
+                  realtimeData?.riskDistribution ? (
+                    [
+                      { level: '无风险', key: 'none', color: 'border-emerald-500/30 bg-emerald-500/5', textColor: 'text-emerald-600', dot: 'bg-emerald-500' },
+                      { level: '黄色预警', key: 'yellow', color: 'border-yellow-400/30 bg-yellow-400/5', textColor: 'text-yellow-500', dot: 'bg-yellow-400' },
+                      { level: '橙色预警', key: 'orange', color: 'border-orange-500/30 bg-orange-500/5', textColor: 'text-orange-500', dot: 'bg-orange-500' },
+                      { level: '红色高危', key: 'red', color: 'border-red-500/30 bg-red-500/5', textColor: 'text-red-500', dot: 'bg-red-500' },
+                    ].map((item) => (
+                      <div key={item.level} className={`border rounded-xl p-5 ${item.color}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`w-3 h-3 rounded-full ${item.dot}`}></span>
+                          <span className={`text-sm font-medium ${item.textColor}`}>{item.level}</span>
+                        </div>
+                        <p className={`text-3xl font-bold ${item.textColor}`}>{realtimeData.riskDistribution[item.key]}</p>
+                        <p className="text-xs text-[#150049] mt-1">家企业</p>
+                      </div>
+                    ))
+                  ) : (
+                    [
+                      { level: '无风险', count: 312, color: 'border-emerald-500/30 bg-emerald-500/5', textColor: 'text-emerald-600', dot: 'bg-emerald-500' },
+                      { level: '黄色预警', count: 98, color: 'border-yellow-400/30 bg-yellow-400/5', textColor: 'text-yellow-500', dot: 'bg-yellow-400' },
+                      { level: '橙色预警', count: 54, color: 'border-orange-500/30 bg-orange-500/5', textColor: 'text-orange-500', dot: 'bg-orange-500' },
+                      { level: '红色高危', count: 23, color: 'border-red-500/30 bg-red-500/5', textColor: 'text-red-500', dot: 'bg-red-500' },
+                    ].map((item) => (
+                      <div key={item.level} className={`border rounded-xl p-5 ${item.color}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`w-3 h-3 rounded-full ${item.dot}`}></span>
+                          <span className={`text-sm font-medium ${item.textColor}`}>{item.level}</span>
+                        </div>
+                        <p className={`text-3xl font-bold ${item.textColor}`}>{item.count}</p>
+                        <p className="text-xs text-[#150049] mt-1">家企业</p>
+                      </div>
+                    ))
+                  )
+                }
               </div>
 
               {/* Detection Records + AI Analysis */}
@@ -768,19 +1111,27 @@ export default function Index() {
                 <div className="bg-white border border-[#344056] rounded-xl p-6">
                   <h2 className="font-semibold text-[#000000] text-lg mb-4">检测记录明细</h2>
                   <div className="space-y-3">
-                    {MOCK_DETECTIONS.map((d) => (
-                      <div key={d.id} className="flex items-center gap-3 p-3 rounded-lg border border-[#344056]/20 hover:bg-[#eef1ee] transition-colors cursor-pointer">
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${RISK_DOT[d.risk]}`}></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#000000] truncate">{d.company}</p>
-                          <p className="text-xs text-[#150049]">{d.period} · {d.indicators}项指标全检</p>
+                    {realtimeData?.recentDetections ? (
+                      realtimeData.recentDetections.map((d: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className="flex items-center gap-3 p-3 rounded-lg border border-[#344056]/20 hover:bg-[#eef1ee] transition-colors cursor-pointer"
+                          onClick={() => handleCompanyClick(d)}
+                        >
+                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${RISK_DOT[d.risk as RiskLevel]}`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#000000] truncate cursor-pointer hover:text-[#1c0620]">{d.company}</p>
+                            <p className="text-xs text-[#150049]">{d.period} · {d.indicators}项指标全检</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className={`text-xs font-semibold border px-2 py-0.5 rounded-full ${RISK_COLORS[d.risk as RiskLevel]}`}>{RISK_LABELS[d.risk as RiskLevel]}</span>
+                            <p className="text-xs text-[#150049] mt-0.5">{d.time}</p>
+                          </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className={`text-xs font-semibold border px-2 py-0.5 rounded-full ${RISK_COLORS[d.risk]}`}>{RISK_LABELS[d.risk]}</span>
-                          <p className="text-xs text-[#150049] mt-0.5">{d.time}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-sm text-[#150049]">加载实时数据中...</div>
+                    )}
                   </div>
                 </div>
 
@@ -792,30 +1143,53 @@ export default function Index() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
                     </div>
-                    <h3 className="font-semibold text-[#000000] text-sm">AI 辅助舞弊检测</h3>
+                    <h3 className="font-semibold text-[#000000] text-sm">DeepSeek 智能分析</h3>
                     <span className="ml-auto text-xs text-[#1c0620] bg-[#1c0620]/10 px-2 py-0.5 rounded-full">实时分析</span>
                   </div>
-                  <div className="space-y-3 mb-4">
-                    {[
-                      { title: '风险等级评定', content: '当前检测企业综合风险评定为红色高危等级，建议立即启动专项审计程序。', color: 'bg-red-500/8 border-red-500/20', dot: 'bg-red-500' },
-                      { title: '重点核查指标推荐', content: '优先核查：营收增长率、应收账款周转率、现金流量比率、关联方交易集中度。', color: 'bg-amber-500/8 border-amber-500/20', dot: 'bg-amber-500' },
-                      { title: '风险分析建议', content: '建议对该企业进行现场审计，重点核查营收确认函、应收账款备忘录及关联方交易合同。', color: 'bg-[#1c0620]/8 border-[#1c0620]/20', dot: 'bg-[#1c0620]' },
-                    ].map((item) => (
-                      <div key={item.title} className={`flex gap-3 p-3 border rounded-lg ${item.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${item.dot} mt-1.5 flex-shrink-0`}></span>
+                  {aiAnalysis ? (
+                    <div className="space-y-3 mb-4">
+                      <div className="flex gap-3 p-3 border rounded-lg bg-white/60">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#1c0620] mt-1.5 flex-shrink-0"></span>
                         <div>
-                          <p className="text-xs font-medium text-[#000000] mb-0.5">{item.title}</p>
-                          <p className="text-xs text-[#150049] leading-relaxed">{item.content}</p>
+                          <p className="text-xs font-medium text-[#000000] mb-0.5">DeepSeek 分析结果</p>
+                          <p className="text-xs text-[#150049] leading-relaxed whitespace-pre-line">{aiAnalysis}</p>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-3 mb-4">
+                      {[
+                        { title: '风险等级评定', content: '当前检测企业综合风险评定为红色高危等级，建议立即启动专项审计程序。', color: 'bg-red-500/8 border-red-500/20', dot: 'bg-red-500' },
+                        { title: '重点核查指标推荐', content: '优先核查：营收增长率、应收账款周转率、现金流量比率、关联方交易集中度。', color: 'bg-amber-500/8 border-amber-500/20', dot: 'bg-amber-500' },
+                        { title: '风险分析建议', content: '建议对该企业进行现场审计，重点核查营收确认函、应收账款备忘录及关联方交易合同。', color: 'bg-[#1c0620]/8 border-[#1c0620]/20', dot: 'bg-[#1c0620]' },
+                      ].map((item) => (
+                        <div key={item.title} className={`flex gap-3 p-3 border rounded-lg ${item.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.dot} mt-1.5 flex-shrink-0`}></span>
+                          <div>
+                            <p className="text-xs font-medium text-[#000000] mb-0.5">{item.title}</p>
+                            <p className="text-xs text-[#150049] leading-relaxed">{item.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-[#150049] mb-2">选择AI模型</label>
+                    <select
+                      value={selectedAiModel}
+                      onChange={(e) => setSelectedAiModel(e.target.value as 'gemini' | 'deepseek')}
+                      className="w-full text-xs px-3 py-2.5 bg-[#eef1ee] border border-[#344056] rounded-lg text-[#150049] focus:outline-none focus:border-[#1c0620]/50"
+                    >
+                      <option value="gemini">Google Gemini (¥0.1/秒)</option>
+                      <option value="deepseek">DeepSeek</option>
+                    </select>
                   </div>
                   <button
-                    onClick={handleDetect}
-                    disabled={detecting}
+                    onClick={runAiAnalysis}
+                    disabled={aiAnalyzing || selectedFiles.length === 0}
                     className="w-full py-2.5 text-sm font-medium text-white bg-[#1c0620] rounded-lg hover:bg-[#1c0620]/90 transition-all disabled:opacity-60"
                   >
-                    {detecting ? 'AI 分析中...' : '启动 AI 检测'}
+                    {aiAnalyzing ? `${selectedAiModel === 'gemini' ? 'Google Gemini' : 'DeepSeek'} 分析中...` : `启动 ${selectedAiModel === 'gemini' ? 'Google Gemini' : 'DeepSeek'} 检测`}
                   </button>
                 </div>
               </div>
@@ -1208,6 +1582,133 @@ export default function Index() {
                       {pwLoading ? '修改中...' : '修改密码'}
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 公司详细信息弹窗 */}
+          {showCompanyDetail && selectedCompany && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-[#000000]">{selectedCompany.company} 风险详情</h2>
+                  <button
+                    onClick={() => setShowCompanyDetail(false)}
+                    className="text-[#150049] hover:text-[#1c0620] transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* 基本信息 */}
+                <div className="mb-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-[#150049] mb-1">风险等级</p>
+                      <span className={`text-sm font-semibold border px-3 py-1 rounded-full ${RISK_COLORS[selectedCompany.risk as RiskLevel]}`}>
+                        {RISK_LABELS[selectedCompany.risk as RiskLevel]}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#150049] mb-1">检测时间</p>
+                      <p className="text-sm font-medium text-[#000000]">{selectedCompany.time}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#150049] mb-1">检测期间</p>
+                      <p className="text-sm font-medium text-[#000000]">{selectedCompany.period}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#150049] mb-1">检测指标数</p>
+                      <p className="text-sm font-medium text-[#000000]">{selectedCompany.indicators}项</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 财务数据 */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#000000] mb-3">财务数据</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 border border-[#344056]/20 rounded-lg">
+                      <p className="text-xs text-[#150049] mb-1">营业收入</p>
+                      <p className="text-lg font-bold text-[#000000]">{selectedCompany.financialData.revenue}</p>
+                    </div>
+                    <div className="p-3 border border-[#344056]/20 rounded-lg">
+                      <p className="text-xs text-[#150049] mb-1">净利润</p>
+                      <p className="text-lg font-bold text-[#000000]">{selectedCompany.financialData.profit}</p>
+                    </div>
+                    <div className="p-3 border border-[#344056]/20 rounded-lg">
+                      <p className="text-xs text-[#150049] mb-1">总资产</p>
+                      <p className="text-lg font-bold text-[#000000]">{selectedCompany.financialData.assets}</p>
+                    </div>
+                    <div className="p-3 border border-[#344056]/20 rounded-lg">
+                      <p className="text-xs text-[#150049] mb-1">总负债</p>
+                      <p className="text-lg font-bold text-[#000000]">{selectedCompany.financialData.liabilities}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 风险指标 */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#000000] mb-3">风险指标</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-[#344056]/20">
+                          <th className="text-left py-2 px-3 text-xs text-[#150049] font-semibold">指标名称</th>
+                          <th className="text-right py-2 px-3 text-xs text-[#150049] font-semibold">公司值</th>
+                          <th className="text-right py-2 px-3 text-xs text-[#150049] font-semibold">行业平均</th>
+                          <th className="text-right py-2 px-3 text-xs text-[#150049] font-semibold">偏离度</th>
+                          <th className="text-right py-2 px-3 text-xs text-[#150049] font-semibold">风险等级</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedCompany.riskIndicators.map((indicator: any, index: number) => (
+                          <tr key={index} className="border-b border-[#344056]/10 hover:bg-[#eef1ee]">
+                            <td className="py-2 px-3">
+                              <p className="text-sm font-medium text-[#000000]">{indicator.name}</p>
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              <span className="text-sm font-semibold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{indicator.value}</span>
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              <span className="text-sm text-[#150049]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{indicator.industry}</span>
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              <span className={`text-sm font-semibold ${indicator.deviation.includes('+') ? 'text-red-500' : 'text-emerald-600'}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>{indicator.deviation}</span>
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              <span className={`text-xs font-semibold border px-2 py-0.5 rounded-full ${RISK_COLORS[indicator.risk as RiskLevel]}`}>{RISK_LABELS[indicator.risk as RiskLevel]}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 风险分析 */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-[#000000] mb-3">风险分析</h3>
+                  <div className="p-4 border border-[#344056]/20 rounded-lg bg-[#eef1ee]">
+                    <pre className="text-sm text-[#150049] whitespace-pre-wrap">{selectedCompany.riskAnalysis}</pre>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowCompanyDetail(false)}
+                    className="px-4 py-2 text-sm font-medium text-[#150049] border border-[#344056] rounded-lg hover:bg-[#eef1ee] transition-colors"
+                  >
+                    关闭
+                  </button>
+                  <button
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#1c0620] rounded-lg hover:bg-[#1c0620]/90 transition-colors"
+                  >
+                    导出报告
+                  </button>
                 </div>
               </div>
             </div>

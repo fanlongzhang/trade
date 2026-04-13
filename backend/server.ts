@@ -6,6 +6,7 @@ import path from 'path';
 
 //import api routes here
 import authRoutes from './routes/auth';
+import aiRoutes from './routes/ai';
 
 // Configuration
 import { SERVER_CONFIG } from './config/constants';
@@ -76,6 +77,7 @@ app.use(express.urlencoded({ extended: true }));
  * API Routes
  */
 app.use('/api/auth', authRoutes);
+app.use('/api/ai', aiRoutes);
 
 /**
  * Install Stripe Routes here

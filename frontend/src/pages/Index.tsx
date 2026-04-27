@@ -185,6 +185,16 @@ const ROLE_LABELS: Record<string, string> = {
   admin: '系统管理员',
 };
 
+// 详细的功能权限定义
+const FEATURE_PERMISSIONS: Record<string, string[]> = {
+  financial_staff: ['file_upload', 'indicator_calculate', 'risk_detect', 'report_download', 'alert_view'],
+  management: ['risk_review', 'report_view', 'ai_analysis', 'decision_make'],
+  auditor: ['data_audit', 'version_trace', 'history_compare', 'data_export'],
+  admin: ['user_management', 'permission_config', 'system_maintenance', 'rule_config', 'indicator_config', 'data_backup']
+};
+
+
+
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   financial_staff: ['数据上传', '检测启动', '台账维护', '预警查看', '报告下载'],
   management: ['风险审阅', '批注决策', '报告查看', 'AI建议查看'],
@@ -342,8 +352,9 @@ export default function Index() {
             return acc + file.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
           }, 0);
           
-          const getRandom = (min: number, max: number) => {
-            const value = (seed * 12345 + Date.now()) % (max - min + 1);
+          const getRandom = (min: number, max: number, index: number) => {
+            // 使用指标索引作为随机数的一部分，确保每个指标值不同
+            const value = (seed * 12345 + index * 789 + Date.now()) % (max - min + 1);
             return Math.floor(value) + min;
           };
           
@@ -353,8 +364,8 @@ export default function Index() {
           return Array.from({ length: 108 }, (_, i) => {
             const id = i + 1;
             const category = categories[id % categories.length];
-            const baseValue = getRandom(1, 200);
-            const industryValue = getRandom(1, 150);
+            const baseValue = getRandom(1, 200, i);
+            const industryValue = getRandom(1, 150, i + 1000);
             const deviation = ((baseValue - industryValue) / industryValue * 100).toFixed(1) + '%';
             const riskIndex = Math.abs(baseValue - industryValue) > 50 ? 0 : Math.abs(baseValue - industryValue) > 30 ? 1 : Math.abs(baseValue - industryValue) > 15 ? 2 : 3;
             
@@ -676,6 +687,28 @@ export default function Index() {
     localStorage.setItem('selectedFiles', JSON.stringify(selectedFiles));
   }, [selectedFiles]);
 
+  // 基于角色的菜单权限控制
+  const roleMenuMapping: Record<string, View[]> = {
+    financial_staff: ['dashboard', 'data', 'indicators', 'risk', 'reports'],
+    management: ['dashboard', 'risk', 'reports'],
+    auditor: ['dashboard', 'reports'],
+    admin: ['dashboard', 'config']
+  };
+
+  // 获取当前用户角色的可访问菜单
+  const getAccessibleNavItems = () => {
+    const userRole = userInfo?.role || 'financial_staff';
+    const accessibleViews = roleMenuMapping[userRole] || ['dashboard'];
+    return navItems.filter(item => accessibleViews.includes(item.view));
+  };
+
+  // 权限检查函数
+  const hasPermission = (feature: string): boolean => {
+    const userRole = userInfo?.role || 'financial_staff';
+    const userPermissions = FEATURE_PERMISSIONS[userRole] || [];
+    return userPermissions.includes(feature) || userRole === 'admin';
+  };
+
   const navItems: { view: View; label: string }[] = [
     { view: 'dashboard', label: '控制台' },
     { view: 'data', label: '数据接入' },
@@ -704,7 +737,7 @@ export default function Index() {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => (
+              {getAccessibleNavItems().map((item) => (
                 <button
                   key={item.view}
                   onClick={() => handleNavClick(item.view)}
@@ -755,7 +788,7 @@ export default function Index() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-[#344056] bg-[#eef1ee] px-4 py-3 space-y-1">
-            {navItems.map((item) => (
+            {getAccessibleNavItems().map((item) => (
               <button
                 key={item.view}
                 onClick={() => handleNavClick(item.view)}
@@ -1049,27 +1082,33 @@ export default function Index() {
                 <div className="bg-white border border-[#344056] rounded-xl p-6">
                   <h2 className="font-semibold text-[#000000] text-lg mb-1">数据清洗报告</h2>
                   <p className="text-xs text-[#150049] mb-5">标准化数据处理过程追溯</p>
-                  <div className="space-y-3">
-                    {[
-                      { label: '原始记录数', value: '3,124', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-[#1c0620] bg-[#1c0620]/10' },
-                      { label: '重复记录删除', value: '47', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', color: 'text-red-500 bg-red-500/10' },
-                      { label: '空字段补零', value: '230', icon: 'M12 4v16m8-8H4', color: 'text-amber-500 bg-amber-500/10' },
-                      { label: '负数置零处理', value: '12', icon: 'M20 12H4', color: 'text-orange-500 bg-orange-500/10' },
-                      { label: '最终标准记录', value: '2,847', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-emerald-600 bg-emerald-500/10' },
-                    ].map((item) => (
-                      <div key={item.label} className="flex items-center justify-between p-3 bg-[#eef1ee] rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.color}`}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                            </svg>
+                  {realtimeData?.cleaningReport ? (
+                    <div className="space-y-3">
+                      {[
+                        { label: '原始记录数', value: realtimeData.cleaningReport.originalRecords.toLocaleString(), icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-[#1c0620] bg-[#1c0620]/10' },
+                        { label: '重复记录删除', value: realtimeData.cleaningReport.duplicateRecords.toLocaleString(), icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', color: 'text-red-500 bg-red-500/10' },
+                        { label: '空字段补零', value: realtimeData.cleaningReport.nullFields.toLocaleString(), icon: 'M12 4v16m8-8H4', color: 'text-amber-500 bg-amber-500/10' },
+                        { label: '负数置零处理', value: realtimeData.cleaningReport.negativeValues.toLocaleString(), icon: 'M20 12H4', color: 'text-orange-500 bg-orange-500/10' },
+                        { label: '最终标准记录', value: realtimeData.cleaningReport.finalRecords.toLocaleString(), icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-emerald-600 bg-emerald-500/10' },
+                      ].map((item) => (
+                        <div key={item.label} className="flex items-center justify-between p-3 bg-[#eef1ee] rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.color}`}>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                              </svg>
+                            </div>
+                            <span className="text-sm text-[#000000]">{item.label}</span>
                           </div>
-                          <span className="text-sm text-[#000000]">{item.label}</span>
+                          <span className="text-sm font-semibold text-[#000000]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{item.value}</span>
                         </div>
-                        <span className="text-sm font-semibold text-[#000000]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 text-gray-500">
+                      <p>数据加载中...</p>
+                    </div>
+                  )}
                   <div className="mt-4 p-3 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">
                     <p className="text-xs text-emerald-700 font-medium">✓ 数据清洗完成，数据质量良好，可进行指标计算</p>
                   </div>

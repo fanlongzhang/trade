@@ -83,6 +83,23 @@ router.get('/realtime-data', authenticateJWT, async (req: Request, res: Response
         };
       };
 
+      // 生成数据清洗报告数据
+      const generateCleaningReport = () => {
+        const originalRecords = getRandom(2000, 5000);
+        const duplicateRecords = getRandom(20, 100);
+        const nullFields = getRandom(100, 300);
+        const negativeValues = getRandom(5, 30);
+        const finalRecords = originalRecords - duplicateRecords;
+        
+        return {
+          originalRecords,
+          duplicateRecords,
+          nullFields,
+          negativeValues,
+          finalRecords
+        };
+      };
+
       return {
         riskDistribution: {
           none: getRandom(250, 400),
@@ -102,6 +119,7 @@ router.get('/realtime-data', authenticateJWT, async (req: Request, res: Response
             time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
           }
         ],
+        cleaningReport: generateCleaningReport(),
         timestamp: new Date().toISOString(),
         selectedFiles
       };
@@ -280,8 +298,9 @@ router.post('/calculate-indicators', authenticateJWT, async (req: Request, res: 
         // 基于文件名生成种子
         const seed = fileData.name ? fileData.name.split('').reduce((sum: number, char: string) => sum + char.charCodeAt(0), 0) : Date.now();
         
-        const getRandom = (min: number, max: number) => {
-          const value = (seed * 12345 + Date.now()) % (max - min + 1);
+        const getRandom = (min: number, max: number, index: number) => {
+          // 使用指标索引作为随机数的一部分，确保每个指标值不同
+          const value = (seed * 12345 + index * 789 + Date.now()) % (max - min + 1);
           return Math.floor(value) + min;
         };
         
@@ -291,8 +310,8 @@ router.post('/calculate-indicators', authenticateJWT, async (req: Request, res: 
         return Array.from({ length: 108 }, (_, i) => {
           const id = i + 1;
           const category = categories[id % categories.length];
-          const baseValue = getRandom(1, 200);
-          const industryValue = getRandom(1, 150);
+          const baseValue = getRandom(1, 200, i);
+          const industryValue = getRandom(1, 150, i + 1000);
           const deviation = ((baseValue - industryValue) / industryValue * 100).toFixed(1) + '%';
           const riskIndex = Math.abs(baseValue - industryValue) > 50 ? 0 : Math.abs(baseValue - industryValue) > 30 ? 1 : Math.abs(baseValue - industryValue) > 15 ? 2 : 3;
           

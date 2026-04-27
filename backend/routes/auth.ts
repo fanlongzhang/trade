@@ -58,8 +58,15 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: '邮箱或密码错误' });
     }
 
-    // 使用明文密码验证（仅用于测试）
-    const isValid = password === user.password;
+    // 验证密码（支持哈希和明文密码）
+    let isValid = false;
+    try {
+      // 尝试使用bcrypt验证哈希密码
+      isValid = await bcrypt.compare(password, user.password);
+    } catch {
+      // 如果bcrypt验证失败，尝试明文密码验证（用于测试账号）
+      isValid = password === user.password;
+    }
     if (!isValid) {
       return res.status(401).json({ success: false, message: '邮箱或密码错误' });
     }
